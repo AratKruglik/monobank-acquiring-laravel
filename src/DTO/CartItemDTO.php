@@ -20,7 +20,8 @@ readonly class CartItemDTO
         public ?string $footer = null,
         public ?array $tax = null,
         public ?string $uktzed = null,
-        public ?array $discounts = null
+        public ?array $discounts = null,
+        public ?string $splitReceiverId = null // For marketplace splitting
     ) {
         $this->sum = AmountHelper::toCents($sum);
     }
@@ -40,6 +41,7 @@ readonly class CartItemDTO
             'tax' => $this->tax,
             'uktzed' => $this->uktzed,
             'discounts' => $this->discounts,
+            'splitReceiverId' => $this->splitReceiverId,
         ], fn($value) => !is_null($value));
     }
 }

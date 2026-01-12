@@ -19,6 +19,7 @@ For detailed information about the Monobank Acquiring API, please refer to the o
 *   [Internet Acquiring API](https://monobank.ua/api-docs/acquiring)
 *   [QR Acquiring API](https://monobank.ua/api-docs/acquiring/methods/qr/post--api--merchant--invoice--create)
 *   [Recurring Payments API](https://monobank.ua/api-docs/acquiring/methods/subscription/post--api--merchant--subscription--create)
+*   [Marketplace / Split Payments API](https://monobank.ua/api-docs/acquiring/methods/split/post--api--merchant--invoice--create)
 
 ## Requirements
 
@@ -209,6 +210,46 @@ $details = Monobank::getSubscriptionDetails('sub_id_here');
 Monobank::deleteSubscription('sub_id_here');
 ```
 
+## Marketplace / Split Payments
+
+You can split a payment between multiple recipients (sub-merchants) by specifying `splitReceiverId` for each item in the cart.
+
+### 1. Get Split Receivers
+
+Retrieve a list of available sub-merchants.
+
+```php
+$receivers = Monobank::getSplitReceivers();
+```
+
+### 2. Create Split Invoice
+
+```php
+use AratKruglik\Monobank\DTO\CartItemDTO;
+
+$cart = [
+    new CartItemDTO(
+        name: 'Item from Partner A', 
+        qty: 1, 
+        sum: 100.00, 
+        splitReceiverId: 'receiver_id_a'
+    ),
+    new CartItemDTO(
+        name: 'Item from Partner B', 
+        qty: 1, 
+        sum: 200.00, 
+        splitReceiverId: 'receiver_id_b'
+    ),
+];
+
+$request = new InvoiceRequestDTO(
+    amount: 300.00,
+    cartItems: $cart
+);
+
+$invoice = Monobank::createInvoice($request);
+```
+
 ## Webhooks
 
 This package handles webhook security automatically. It fetches Monobank's public key, caches it, and verifies the `X-Sign` header for every incoming request.
@@ -273,6 +314,14 @@ The package is fully tested with **Pest**. You can run the tests using:
 ```bash
 composer test
 ```
+
+## Testing & Development
+
+To test your integration without real money:
+
+1.  Obtain a **Test Acquiring Token** from the [Monobank Dashboard](https://web.monobank.ua/).
+2.  Set this token in your `.env` file: `MONOBANK_TOKEN=your_test_token`.
+3.  In the test environment, you can use any valid card number (passing Luhn validation) to simulate payments. Financial authorization is skipped.
 
 ## License
 

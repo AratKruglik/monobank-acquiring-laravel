@@ -150,4 +150,14 @@ class Monobank
 
         return $response->successful();
     }
+
+    /**
+     * Get list of split receivers (sub-merchants).
+     * 
+     * @return array
+     */
+    public function getSplitReceivers(): array
+    {
+        return $this->client->get('split-receivers')->json();
+    }
 }

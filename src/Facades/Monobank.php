@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static array getQrList()
  * @method static \AratKruglik\Monobank\DTO\QrDetailsDTO getQrDetails(string $qrId)
  * @method static bool resetQrAmount(string $qrId)
+ * @method static array getSplitReceivers()
  * @method static string|null getToken()
  * 
  * @see \AratKruglik\Monobank\Monobank
