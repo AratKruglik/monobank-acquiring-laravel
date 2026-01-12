@@ -10,6 +10,9 @@ use AratKruglik\Monobank\Support\AmountHelper;
 
 use AratKruglik\Monobank\DTO\QrDetailsDTO;
 
+use AratKruglik\Monobank\DTO\SubscriptionRequestDTO;
+use AratKruglik\Monobank\DTO\SubscriptionResponseDTO;
+
 class Monobank
 {
     protected Client $client;
@@ -25,6 +28,36 @@ class Monobank
     public function getToken(): ?string
     {
         return $this->config['token'] ?? null;
+    }
+
+    /**
+     * Create a new subscription (recurring payment).
+     */
+    public function createSubscription(SubscriptionRequestDTO $request): SubscriptionResponseDTO
+    {
+        $response = $this->client->post('subscription/create', $request->toArray());
+
+        return SubscriptionResponseDTO::fromArray($response->json());
+    }
+
+    /**
+     * Get subscription details/status.
+     * 
+     * @return array Raw response data
+     */
+    public function getSubscriptionDetails(string $subscriptionId): array
+    {
+        return $this->client->get('subscription/status', ['subscriptionId' => $subscriptionId])->json();
+    }
+
+    /**
+     * Delete (invalidate) a subscription.
+     */
+    public function deleteSubscription(string $subscriptionId): bool
+    {
+        $response = $this->client->post('subscription/delete', ['subscriptionId' => $subscriptionId]);
+
+        return $response->successful();
     }
 
     /**

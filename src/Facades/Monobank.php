@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \AratKruglik\Monobank\DTO\InvoiceResponseDTO createInvoice(\AratKruglik\Monobank\DTO\InvoiceRequestDTO $request)
+ * @method static \AratKruglik\Monobank\DTO\SubscriptionResponseDTO createSubscription(\AratKruglik\Monobank\DTO\SubscriptionRequestDTO $request)
+ * @method static array getSubscriptionDetails(string $subscriptionId)
+ * @method static bool deleteSubscription(string $subscriptionId)
  * @method static \AratKruglik\Monobank\DTO\InvoiceStatusDTO getInvoiceStatus(string $invoiceId)
  * @method static bool cancelInvoice(string $invoiceId, ?string $extRef = null, int|float|null $amount = null, ?array $items = null)
  * @method static array getDetails()

@@ -18,6 +18,7 @@ A robust, idiomatic Laravel package for integrating with the **Monobank Acquirin
 For detailed information about the Monobank Acquiring API, please refer to the official documentation:
 *   [Internet Acquiring API](https://monobank.ua/api-docs/acquiring)
 *   [QR Acquiring API](https://monobank.ua/api-docs/acquiring/methods/qr/post--api--merchant--invoice--create)
+*   [Recurring Payments API](https://monobank.ua/api-docs/acquiring/methods/subscription/post--api--merchant--subscription--create)
 
 ## Requirements
 
@@ -175,6 +176,37 @@ Remove the assigned amount from a QR stand.
 
 ```php
 Monobank::resetQrAmount('qr_id_here');
+```
+
+## Recurring Payments (Subscriptions)
+
+You can manage subscriptions for recurring payments.
+
+### 1. Create Subscription
+
+```php
+use AratKruglik\Monobank\DTO\SubscriptionRequestDTO;
+
+$subscription = Monobank::createSubscription(new SubscriptionRequestDTO(
+    amount: 100.00, // 100.00 UAH
+    interval: '1m', // 1 month
+    webHookStatusUrl: 'https://site.com/sub/status',
+    redirectUrl: 'https://site.com/thank-you'
+));
+
+return redirect($subscription->pageUrl);
+```
+
+### 2. Get Subscription Details
+
+```php
+$details = Monobank::getSubscriptionDetails('sub_id_here');
+```
+
+### 3. Cancel Subscription
+
+```php
+Monobank::deleteSubscription('sub_id_here');
 ```
 
 ## Webhooks
