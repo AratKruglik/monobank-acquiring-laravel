@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static \AratKruglik\Monobank\DTO\InvoiceStatusDTO getInvoiceStatus(string $invoiceId)
  * @method static bool cancelInvoice(string $invoiceId, ?string $extRef = null, int|float|null $amount = null, ?array $items = null)
  * @method static array getDetails()
+ * @method static array getQrList()
+ * @method static \AratKruglik\Monobank\DTO\QrDetailsDTO getQrDetails(string $qrId)
+ * @method static bool resetQrAmount(string $qrId)
  * @method static string|null getToken()
  * 
  * @see \AratKruglik\Monobank\Monobank

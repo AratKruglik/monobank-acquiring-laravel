@@ -15,7 +15,9 @@ A robust, idiomatic Laravel package for integrating with the **Monobank Acquirin
 
 ## Official Documentation
 
-For detailed information about the Monobank Acquiring API, please refer to the [Official API Documentation](https://monobank.ua/api-docs/acquiring).
+For detailed information about the Monobank Acquiring API, please refer to the official documentation:
+*   [Internet Acquiring API](https://monobank.ua/api-docs/acquiring)
+*   [QR Acquiring API](https://monobank.ua/api-docs/acquiring/methods/qr/post--api--merchant--invoice--create)
 
 ## Requirements
 
@@ -133,6 +135,46 @@ Get information about your merchant account.
 ```php
 $details = Monobank::getDetails();
 echo $details['merchantName'];
+```
+
+## QR Acquiring
+
+You can manage your physical QR stands using the following methods.
+
+### 1. List QR Registers
+
+```php
+$list = Monobank::getQrList();
+
+foreach ($list as $qr) {
+    echo $qr->qrId . ' - ' . $qr->pageUrl;
+}
+```
+
+### 2. Get QR Details
+
+```php
+$qr = Monobank::getQrDetails('qr_id_here');
+echo $qr->shortQrId;
+```
+
+### 3. Invoice for QR Stand
+
+To assign an amount to a specific QR stand (so the client scans it and sees the amount), create an invoice passing the `qrId`.
+
+```php
+$invoice = Monobank::createInvoice(new InvoiceRequestDTO(
+    amount: 150.00,
+    qrId: 'qr_id_here'
+));
+```
+
+### 4. Reset QR Amount
+
+Remove the assigned amount from a QR stand.
+
+```php
+Monobank::resetQrAmount('qr_id_here');
 ```
 
 ## Webhooks

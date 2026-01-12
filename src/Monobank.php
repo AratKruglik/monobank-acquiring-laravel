@@ -8,6 +8,8 @@ use AratKruglik\Monobank\DTO\InvoiceStatusDTO;
 
 use AratKruglik\Monobank\Support\AmountHelper;
 
+use AratKruglik\Monobank\DTO\QrDetailsDTO;
+
 class Monobank
 {
     protected Client $client;
@@ -79,5 +81,40 @@ class Monobank
     public function getDetails(): array
     {
         return $this->client->get('details')->json();
+    }
+
+    /**
+     * Get list of QR-cash registers.
+     * 
+     * @return array<QrDetailsDTO>
+     */
+    public function getQrList(): array
+    {
+        $response = $this->client->get('qr/list');
+
+        return array_map(
+            fn(array $item) => QrDetailsDTO::fromArray($item),
+            $response->json()
+        );
+    }
+
+    /**
+     * Get information about a specific QR-cash register.
+     */
+    public function getQrDetails(string $qrId): QrDetailsDTO
+    {
+        $response = $this->client->get("qr/details/{$qrId}");
+
+        return QrDetailsDTO::fromArray($response->json());
+    }
+
+    /**
+     * Reset amount on a QR-cash register.
+     */
+    public function resetQrAmount(string $qrId): bool
+    {
+        $response = $this->client->post('qr/reset-amount', ['qrId' => $qrId]);
+
+        return $response->successful();
     }
 }
