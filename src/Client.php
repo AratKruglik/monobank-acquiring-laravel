@@ -13,6 +13,8 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
+use Symfony\Component\HttpFoundation\Response as HttpStatus;
+
 class Client
 {
     protected string $baseUrl = 'https://api.monobank.ua/api/merchant/';
@@ -68,15 +70,18 @@ class Client
         $message = $response->json('errCode') . ': ' . $response->json('errText') ?? $response->body();
 
         match ($status) {
-            400 => throw new ValidationException("Monobank API Error (400): $message", 400),
-            401, 403 => throw new AuthenticationException("Monobank API Unauthorized (401/403): $message", $status),
-            429 => throw new RateLimitExceededException(
+            HttpStatus::HTTP_BAD_REQUEST => throw new ValidationException("Monobank API Error (400): $message", 400),
+            HttpStatus::HTTP_UNAUTHORIZED, HttpStatus::HTTP_FORBIDDEN => throw new AuthenticationException("Monobank API Unauthorized (401/403): $message", $status),
+            HttpStatus::HTTP_TOO_MANY_REQUESTS => throw new RateLimitExceededException(
                 "Monobank API Rate Limit Exceeded (429)",
                 429,
                 null,
                 (int) $response->header('Retry-After', 60)
             ),
-            500, 502, 503, 504 => throw new ServerException("Monobank Server Error ($status): $message", $status),
+            HttpStatus::HTTP_INTERNAL_SERVER_ERROR, 
+            HttpStatus::HTTP_BAD_GATEWAY, 
+            HttpStatus::HTTP_SERVICE_UNAVAILABLE, 
+            HttpStatus::HTTP_GATEWAY_TIMEOUT => throw new ServerException("Monobank Server Error ($status): $message", $status),
             default => throw new MonobankException("Monobank API Unknown Error ($status): $message", $status),
         };
     }

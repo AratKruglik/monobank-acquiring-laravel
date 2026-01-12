@@ -2,12 +2,16 @@
 
 namespace AratKruglik\Monobank\DTO;
 
-readonly class BasketItemDTO
+use AratKruglik\Monobank\Support\AmountHelper;
+
+readonly class CartItemDTO
 {
+    public int $sum;
+
     public function __construct(
         public string $name,
         public int $qty,
-        public int $sum,
+        int|float $sum,
         public ?string $icon = null,
         public ?string $unit = null,
         public ?string $code = null,
@@ -17,7 +21,9 @@ readonly class BasketItemDTO
         public ?array $tax = null,
         public ?string $uktzed = null,
         public ?array $discounts = null
-    ) {}
+    ) {
+        $this->sum = AmountHelper::toCents($sum);
+    }
 
     public function toArray(): array
     {

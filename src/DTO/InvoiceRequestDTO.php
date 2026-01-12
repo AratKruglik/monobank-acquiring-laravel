@@ -3,15 +3,18 @@
 namespace AratKruglik\Monobank\DTO;
 
 use AratKruglik\Monobank\Enums\CurrencyCode;
+use AratKruglik\Monobank\Support\AmountHelper;
 
 readonly class InvoiceRequestDTO
 {
+    public int $amount;
+
     /**
-     * @param int $amount Amount in cents (minimal unit)
-     * @param BasketItemDTO[]|null $basketOrder
+     * @param int|float $amount Amount in cents (int) or major units (float, e.g. 10.50)
+     * @param CartItemDTO[]|null $cartItems
      */
     public function __construct(
-        public int $amount,
+        int|float $amount,
         public int|CurrencyCode $ccy = 980, // UAH by default
         public ?array $merchantPaymInfo = null,
         public ?string $redirectUrl = null,
@@ -20,9 +23,11 @@ readonly class InvoiceRequestDTO
         public ?string $paymentType = 'debit',
         public ?string $qrId = null,
         public ?string $code = null,
-        public ?array $basketOrder = null, // Array of BasketItemDTO
+        public ?array $cartItems = null, // Array of CartItemDTO
         public bool $saveCardData = false
-    ) {}
+    ) {
+        $this->amount = AmountHelper::toCents($amount);
+    }
 
     public function toArray(): array
     {
@@ -39,15 +44,12 @@ readonly class InvoiceRequestDTO
             'saveCardData' => $this->saveCardData ? true : null,
         ];
 
-        if ($this->basketOrder) {
+        if ($this->cartItems) {
             $data['merchantPaymInfo']['basketOrder'] = array_map(
-                fn(BasketItemDTO $item) => $item->toArray(),
-                $this->basketOrder
+                fn(CartItemDTO $item) => $item->toArray(),
+                $this->cartItems
             );
         }
-        
-        // Remove explicit saveCardData if false to avoid sending unnecessary fields, 
-        // though API might treat null/missing as false.
         
         return array_filter($data, fn($value) => !is_null($value));
     }

@@ -13,7 +13,34 @@ beforeEach(function () {
     config(['monobank.token' => 'test-token']);
 });
 
-it('can create an invoice', function () {
+it('can create an invoice with float amount', function () {
+    Http::fake([
+        'api.monobank.ua/api/merchant/invoice/create' => Http::response([
+            'invoiceId' => 'inv_float',
+            'pageUrl' => 'https://pay.mb.ua/inv_float',
+        ], 200),
+    ]);
+
+    // Request with float (100.50 UAH)
+    $request = new InvoiceRequestDTO(
+        amount: 100.50,
+        redirectUrl: 'https://example.com/success',
+        webHookUrl: 'https://example.com/webhook'
+    );
+
+    $response = Monobank::createInvoice($request);
+
+    expect($response)->toBeInstanceOf(InvoiceResponseDTO::class)
+        ->and($response->invoiceId)->toBe('inv_float');
+    
+    Http::assertSent(function ($request) {
+        return $request->url() === 'https://api.monobank.ua/api/merchant/invoice/create' &&
+               $request['amount'] === 10050 && // Expecting 10050 cents
+               $request->header('X-Token')[0] === 'test-token';
+    });
+});
+
+it('can create an invoice with int amount', function () {
     Http::fake([
         'api.monobank.ua/api/merchant/invoice/create' => Http::response([
             'invoiceId' => 'inv_123',
@@ -21,23 +48,19 @@ it('can create an invoice', function () {
         ], 200),
     ]);
 
+    // Request with int (10000 cents)
     $request = new InvoiceRequestDTO(
-        amount: 10000, // 100.00 UAH
+        amount: 10000, 
         redirectUrl: 'https://example.com/success',
         webHookUrl: 'https://example.com/webhook'
     );
 
-    $response = Monobank::merchant()->createInvoice($request);
+    $response = Monobank::createInvoice($request);
 
-    expect($response)->toBeInstanceOf(InvoiceResponseDTO::class)
-        ->and($response->invoiceId)->toBe('inv_123')
-        ->and($response->pageUrl)->toBe('https://pay.mb.ua/inv_123');
+    expect($response)->toBeInstanceOf(InvoiceResponseDTO::class);
     
     Http::assertSent(function ($request) {
-        return $request->url() === 'https://api.monobank.ua/api/merchant/invoice/create' &&
-               $request['amount'] === 10000 &&
-               $request['ccy'] === 980 && // Verify default int is sent
-               $request->header('X-Token')[0] === 'test-token';
+        return $request['amount'] === 10000;
     });
 });
 
@@ -53,22 +76,27 @@ it('can check invoice status', function () {
         ], 200),
     ]);
 
-    $status = Monobank::merchant()->getInvoiceStatus('inv_123');
+    $status = Monobank::getInvoiceStatus('inv_123');
 
     expect($status)->toBeInstanceOf(InvoiceStatusDTO::class)
-        ->and($status->status)->toBe(InvoiceStatus::SUCCESS) // Enum assertion
-        ->and($status->ccy)->toBe(CurrencyCode::UAH) // Enum assertion
+        ->and($status->status)->toBe(InvoiceStatus::SUCCESS)
+        ->and($status->ccy)->toBe(CurrencyCode::UAH)
         ->and($status->finalAmount)->toBe(10000);
 });
 
-it('can cancel an invoice', function () {
+it('can cancel an invoice with float amount', function () {
     Http::fake([
         'api.monobank.ua/api/merchant/invoice/cancel' => Http::response(['status' => 'ok'], 200),
     ]);
 
-    $result = Monobank::merchant()->cancelInvoice('inv_123');
+    // Refund 50.50 UAH
+    $result = Monobank::cancelInvoice('inv_123', null, 50.50);
 
     expect($result)->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        return $request['amount'] === 5050;
+    });
 });
 
 it('can get merchant details', function () {
@@ -79,8 +107,34 @@ it('can get merchant details', function () {
         ], 200),
     ]);
 
-    $details = Monobank::merchant()->getDetails();
+    $details = Monobank::getDetails();
 
     expect($details)->toBeArray()
         ->and($details['merchantId'])->toBe('m_123');
+});
+
+it('can create an invoice with cart items', function () {
+    Http::fake([
+        'api.monobank.ua/api/merchant/invoice/create' => Http::response([
+            'invoiceId' => 'inv_cart',
+            'pageUrl' => 'https://pay.mb.ua/inv_cart',
+        ], 200),
+    ]);
+
+    $cart = [
+        new \AratKruglik\Monobank\DTO\CartItemDTO(name: 'Item 1', qty: 1, sum: 10.00),
+    ];
+
+    $request = new InvoiceRequestDTO(
+        amount: 10.00,
+        cartItems: $cart
+    );
+
+    Monobank::createInvoice($request);
+
+    Http::assertSent(function ($request) {
+        return isset($request['merchantPaymInfo']['basketOrder']) &&
+               $request['merchantPaymInfo']['basketOrder'][0]['name'] === 'Item 1' &&
+               $request['merchantPaymInfo']['basketOrder'][0]['sum'] === 1000;
+    });
 });

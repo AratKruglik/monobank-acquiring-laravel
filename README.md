@@ -48,15 +48,15 @@ You can customize the configuration in `config/monobank.php`.
 
 ### 1. Creating an Invoice
 
-To accept a payment, create an invoice. You must pass the amount in minimal units (cents for UAH/USD/EUR).
+To accept a payment, create an invoice. You can pass the amount as **float** (major units, e.g., `100.50` UAH) or **integer** (cents, e.g., `10050`).
 
 ```php
 use AratKruglik\Monobank\Facades\Monobank;
 use AratKruglik\Monobank\DTO\InvoiceRequestDTO;
 use AratKruglik\Monobank\Enums\CurrencyCode;
 
-$invoice = Monobank::merchant()->createInvoice(new InvoiceRequestDTO(
-    amount: 10000, // 100.00 UAH
+$invoice = Monobank::createInvoice(new InvoiceRequestDTO(
+    amount: 100.00, // 100.00 UAH (will be converted to 10000 cents automatically)
     ccy: CurrencyCode::UAH,
     merchantPaymInfo: [
         'reference' => 'ORDER-12345',
@@ -71,24 +71,24 @@ $invoice = Monobank::merchant()->createInvoice(new InvoiceRequestDTO(
 return redirect($invoice->pageUrl);
 ```
 
-#### With Basket Items
+#### With Cart Items
 
-You can pass detailed basket information for the fiscal check.
+You can pass detailed cart information for the fiscal check.
 
 ```php
-use AratKruglik\Monobank\DTO\BasketItemDTO;
+use AratKruglik\Monobank\DTO\CartItemDTO;
 
-$basket = [
-    new BasketItemDTO(name: 'T-Shirt', qty: 2, sum: 5000, code: 'tshirt-001'),
-    new BasketItemDTO(name: 'Socks', qty: 1, sum: 200, code: 'socks-001'),
+$cart = [
+    new CartItemDTO(name: 'T-Shirt', qty: 2, sum: 50.00, code: 'tshirt-001'), // 50.00 UAH
+    new CartItemDTO(name: 'Socks', qty: 1, sum: 2.00, code: 'socks-001'), // 2.00 UAH
 ];
 
 $request = new InvoiceRequestDTO(
-    amount: 10200,
-    basketOrder: $basket
+    amount: 102.00, // Total: 102.00 UAH
+    cartItems: $cart
 );
 
-$invoice = Monobank::merchant()->createInvoice($request);
+$invoice = Monobank::createInvoice($request);
 ```
 
 ### 2. Checking Invoice Status
@@ -98,7 +98,7 @@ Retrieve the current status of an invoice. The response uses strict Enums.
 ```php
 use AratKruglik\Monobank\Enums\InvoiceStatus;
 
-$status = Monobank::merchant()->getInvoiceStatus('invoice_id_here');
+$status = Monobank::getInvoiceStatus('invoice_id_here');
 
 if ($status->status === InvoiceStatus::SUCCESS) {
     // Order paid!
@@ -113,12 +113,12 @@ You can cancel an unpaid invoice or refund a paid one (fully or partially).
 
 ```php
 // Full refund / Cancel
-Monobank::merchant()->cancelInvoice('invoice_id_here');
+Monobank::cancelInvoice('invoice_id_here');
 
-// Partial refund (e.g., refunding 50.00 UAH)
-Monobank::merchant()->cancelInvoice(
+// Partial refund (e.g., refunding 50.50 UAH)
+Monobank::cancelInvoice(
     invoiceId: 'invoice_id_here',
-    amount: 5000 // 50.00 UAH
+    amount: 50.50 // 50.50 UAH
 );
 ```
 
@@ -127,7 +127,7 @@ Monobank::merchant()->cancelInvoice(
 Get information about your merchant account.
 
 ```php
-$details = Monobank::merchant()->getDetails();
+$details = Monobank::getDetails();
 echo $details['merchantName'];
 ```
 

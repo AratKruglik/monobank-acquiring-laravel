@@ -2,12 +2,15 @@
 
 namespace AratKruglik\Monobank;
 
-use AratKruglik\Monobank\Resources\MerchantResource;
+use AratKruglik\Monobank\DTO\InvoiceRequestDTO;
+use AratKruglik\Monobank\DTO\InvoiceResponseDTO;
+use AratKruglik\Monobank\DTO\InvoiceStatusDTO;
+
+use AratKruglik\Monobank\Support\AmountHelper;
 
 class Monobank
 {
     protected Client $client;
-    protected ?MerchantResource $merchant = null;
 
     public function __construct(protected array $config)
     {
@@ -22,12 +25,59 @@ class Monobank
         return $this->config['token'] ?? null;
     }
 
-    public function merchant(): MerchantResource
+    /**
+     * Create a new invoice.
+     */
+    public function createInvoice(InvoiceRequestDTO $request): InvoiceResponseDTO
     {
-        if (! $this->merchant) {
-            $this->merchant = new MerchantResource($this->client);
+        $response = $this->client->post('invoice/create', $request->toArray());
+
+        return InvoiceResponseDTO::fromArray($response->json());
+    }
+
+    /**
+     * Get invoice status.
+     */
+    public function getInvoiceStatus(string $invoiceId): InvoiceStatusDTO
+    {
+        $response = $this->client->get('invoice/status', ['invoiceId' => $invoiceId]);
+
+        return InvoiceStatusDTO::fromArray($response->json());
+    }
+
+    /**
+     * Cancel an invoice or process a refund.
+     * 
+     * @param string $invoiceId
+     * @param string|null $extRef
+     * @param int|float|null $amount Amount to refund (int=cents, float=units)
+     * @param array|null $items Items to return (for partial refunds)
+     * @return bool
+     */
+    public function cancelInvoice(string $invoiceId, ?string $extRef = null, int|float|null $amount = null, ?array $items = null): bool
+    {
+        $data = ['invoiceId' => $invoiceId];
+        
+        if ($extRef) {
+            $data['extRef'] = $extRef;
+        }
+        if ($amount !== null) {
+            $data['amount'] = AmountHelper::toCents($amount);
+        }
+        if ($items) {
+            $data['items'] = $items;
         }
 
-        return $this->merchant;
+        $response = $this->client->post('invoice/cancel', $data);
+
+        return $response->successful();
+    }
+    
+    /**
+     * Get Merchant Details.
+     */
+    public function getDetails(): array
+    {
+        return $this->client->get('details')->json();
     }
 }
