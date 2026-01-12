@@ -56,13 +56,13 @@ use AratKruglik\Monobank\DTO\InvoiceRequestDTO;
 use AratKruglik\Monobank\Enums\CurrencyCode;
 
 $invoice = Monobank::createInvoice(new InvoiceRequestDTO(
-    amount: 100.00, // 100.00 UAH (will be converted to 10000 cents automatically)
+    amount: 100.00, // 100.00 UAH
     ccy: CurrencyCode::UAH,
-    merchantPaymInfo: [
-        'reference' => 'ORDER-12345',
-        'destination' => 'Payment for Order #12345',
-    ],
+    destination: 'Payment for Order #12345',
+    reference: 'ORDER-12345',
     redirectUrl: 'https://myshop.com/thank-you',
+    successUrl: 'https://myshop.com/success',
+    failUrl: 'https://myshop.com/failure',
     webHookUrl: 'https://myshop.com/api/webhook',
     validity: 3600 // 1 hour
 ));
