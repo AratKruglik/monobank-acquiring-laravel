@@ -13,6 +13,10 @@ A robust, idiomatic Laravel package for integrating with the **Monobank Acquirin
 *   📦 **Strictly Typed**: Uses DTOs and Enums for all requests and responses. No magic arrays.
 *   ⚡ **Laravel Native**: Integration with Laravel's Event system, HTTP Client, and Service Container.
 
+## Official Documentation
+
+For detailed information about the Monobank Acquiring API, please refer to the [Official API Documentation](https://monobank.ua/api-docs/acquiring).
+
 ## Requirements
 
 *   PHP 8.2+
