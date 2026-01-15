@@ -2,6 +2,7 @@
 
 namespace AratKruglik\Monobank;
 
+use AratKruglik\Monobank\Contracts\ClientInterface;
 use AratKruglik\Monobank\Exceptions\AuthenticationException;
 use AratKruglik\Monobank\Exceptions\ConnectionException;
 use AratKruglik\Monobank\Exceptions\MonobankException;
@@ -12,10 +13,9 @@ use Illuminate\Http\Client\ConnectionException as LaravelConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-
 use Symfony\Component\HttpFoundation\Response as HttpStatus;
 
-class Client
+class Client implements ClientInterface
 {
     protected string $baseUrl = 'https://api.monobank.ua/api/merchant/';
 
@@ -41,11 +41,9 @@ class Client
             throw new ConnectionException($e->getMessage(), $e->getCode(), $e);
         }
 
-        if ($response->successful()) {
-            return $response;
+        if (! $response->successful()) {
+            $this->handleError($response);
         }
-
-        $this->handleError($response);
 
         return $response;
     }
@@ -57,32 +55,57 @@ class Client
             ->asJson()
             ->acceptJson();
 
-        if (!empty($this->config['token'])) {
+        if (! empty($this->config['token'])) {
             $request->withHeader('X-Token', $this->config['token']);
         }
 
         return $request;
     }
 
-    protected function handleError(Response $response): void
+    protected function handleError(Response $response): never
     {
         $status = $response->status();
-        $message = $response->json('errCode') . ': ' . $response->json('errText') ?? $response->body();
+        $errCode = $response->json('errCode') ?? 'UNKNOWN';
+        $errText = $response->json('errText') ?? $response->body();
 
         match ($status) {
-            HttpStatus::HTTP_BAD_REQUEST => throw new ValidationException("Monobank API Error (400): $message", 400),
-            HttpStatus::HTTP_UNAUTHORIZED, HttpStatus::HTTP_FORBIDDEN => throw new AuthenticationException("Monobank API Unauthorized (401/403): $message", $status),
+            HttpStatus::HTTP_BAD_REQUEST => throw new ValidationException(
+                "Payment validation failed. Please check your request parameters.",
+                400,
+                null,
+                $errCode,
+                $errText
+            ),
+            HttpStatus::HTTP_UNAUTHORIZED, HttpStatus::HTTP_FORBIDDEN => throw new AuthenticationException(
+                "Authentication failed. Please verify your API token.",
+                $status,
+                null,
+                $errCode,
+                $errText
+            ),
             HttpStatus::HTTP_TOO_MANY_REQUESTS => throw new RateLimitExceededException(
-                "Monobank API Rate Limit Exceeded (429)",
+                "Rate limit exceeded. Please try again later.",
                 429,
                 null,
                 (int) $response->header('Retry-After', 60)
             ),
-            HttpStatus::HTTP_INTERNAL_SERVER_ERROR, 
-            HttpStatus::HTTP_BAD_GATEWAY, 
-            HttpStatus::HTTP_SERVICE_UNAVAILABLE, 
-            HttpStatus::HTTP_GATEWAY_TIMEOUT => throw new ServerException("Monobank Server Error ($status): $message", $status),
-            default => throw new MonobankException("Monobank API Unknown Error ($status): $message", $status),
+            HttpStatus::HTTP_INTERNAL_SERVER_ERROR,
+            HttpStatus::HTTP_BAD_GATEWAY,
+            HttpStatus::HTTP_SERVICE_UNAVAILABLE,
+            HttpStatus::HTTP_GATEWAY_TIMEOUT => throw new ServerException(
+                "Payment service temporarily unavailable. Please try again later.",
+                $status,
+                null,
+                $errCode,
+                $errText
+            ),
+            default => throw new MonobankException(
+                "An unexpected error occurred during payment processing.",
+                $status,
+                null,
+                $errCode,
+                $errText
+            ),
         };
     }
 }

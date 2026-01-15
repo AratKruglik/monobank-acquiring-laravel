@@ -2,10 +2,11 @@
 
 namespace AratKruglik\Monobank;
 
-use Illuminate\Support\ServiceProvider;
-
-use Illuminate\Support\Facades\Route;
+use AratKruglik\Monobank\Contracts\ClientInterface;
 use AratKruglik\Monobank\Http\Controllers\MonobankWebhookController;
+use AratKruglik\Monobank\Services\PubKeyProvider;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 
 class MonobankServiceProvider extends ServiceProvider
 {
@@ -18,9 +19,6 @@ class MonobankServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/monobank.php' => config_path('monobank.php'),
             ], 'monobank-config');
-
-            // Register commands here later
-            // $this->commands([]);
         }
 
         Route::macro('monobankWebhook', function (string $url) {
@@ -33,16 +31,21 @@ class MonobankServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Automatically apply the package configuration
         $this->mergeConfigFrom(__DIR__.'/../config/monobank.php', 'monobank');
 
-        // Register the main class to use with the Facade
-        $this->app->singleton('monobank', function () {
-            return new Monobank(config('monobank'));
+        $this->app->singleton(ClientInterface::class, function ($app) {
+            return new Client(config('monobank'));
         });
 
-        $this->app->singleton(\AratKruglik\Monobank\Services\PubKeyProvider::class, function ($app) {
-            return new \AratKruglik\Monobank\Services\PubKeyProvider(new \AratKruglik\Monobank\Client(config('monobank')));
+        $this->app->singleton('monobank', function ($app) {
+            return new Monobank(
+                config('monobank'),
+                $app->make(ClientInterface::class)
+            );
+        });
+
+        $this->app->singleton(PubKeyProvider::class, function ($app) {
+            return new PubKeyProvider($app->make(ClientInterface::class));
         });
     }
 }

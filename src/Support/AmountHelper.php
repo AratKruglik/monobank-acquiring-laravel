@@ -2,6 +2,8 @@
 
 namespace AratKruglik\Monobank\Support;
 
+use InvalidArgumentException;
+
 class AmountHelper
 {
     /**
@@ -18,9 +20,19 @@ class AmountHelper
      *
      * @param int|float $amount
      * @return int
+     *
+     * @throws InvalidArgumentException If amount is negative, NaN, or infinite
      */
     public static function toCents(int|float $amount): int
     {
+        if (is_float($amount) && (is_nan($amount) || is_infinite($amount))) {
+            throw new InvalidArgumentException('Amount cannot be NaN or infinite');
+        }
+
+        if ($amount < 0) {
+            throw new InvalidArgumentException('Amount cannot be negative');
+        }
+
         if (is_int($amount)) {
             return $amount;
         }

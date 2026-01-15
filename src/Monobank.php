@@ -2,24 +2,21 @@
 
 namespace AratKruglik\Monobank;
 
+use AratKruglik\Monobank\Contracts\ClientInterface;
 use AratKruglik\Monobank\DTO\InvoiceRequestDTO;
 use AratKruglik\Monobank\DTO\InvoiceResponseDTO;
 use AratKruglik\Monobank\DTO\InvoiceStatusDTO;
-
-use AratKruglik\Monobank\Support\AmountHelper;
-
 use AratKruglik\Monobank\DTO\QrDetailsDTO;
-
 use AratKruglik\Monobank\DTO\SubscriptionRequestDTO;
 use AratKruglik\Monobank\DTO\SubscriptionResponseDTO;
+use AratKruglik\Monobank\Support\AmountHelper;
 
 class Monobank
 {
-    protected Client $client;
-
-    public function __construct(protected array $config)
-    {
-        $this->client = new Client($config);
+    public function __construct(
+        protected array $config,
+        protected ClientInterface $client,
+    ) {
     }
 
     /**
@@ -42,7 +39,7 @@ class Monobank
 
     /**
      * Get subscription details/status.
-     * 
+     *
      * @return array Raw response data
      */
     public function getSubscriptionDetails(string $subscriptionId): array
@@ -82,32 +79,24 @@ class Monobank
 
     /**
      * Cancel an invoice or process a refund.
-     * 
-     * @param string $invoiceId
-     * @param string|null $extRef
+     *
      * @param int|float|null $amount Amount to refund (int=cents, float=units)
      * @param array|null $items Items to return (for partial refunds)
-     * @return bool
      */
     public function cancelInvoice(string $invoiceId, ?string $extRef = null, int|float|null $amount = null, ?array $items = null): bool
     {
-        $data = ['invoiceId' => $invoiceId];
-        
-        if ($extRef) {
-            $data['extRef'] = $extRef;
-        }
-        if ($amount !== null) {
-            $data['amount'] = AmountHelper::toCents($amount);
-        }
-        if ($items) {
-            $data['items'] = $items;
-        }
+        $data = array_filter([
+            'invoiceId' => $invoiceId,
+            'extRef' => $extRef,
+            'amount' => $amount !== null ? AmountHelper::toCents($amount) : null,
+            'items' => $items,
+        ], fn($value) => $value !== null);
 
         $response = $this->client->post('invoice/cancel', $data);
 
         return $response->successful();
     }
-    
+
     /**
      * Get Merchant Details.
      */
@@ -118,7 +107,7 @@ class Monobank
 
     /**
      * Get list of QR-cash registers.
-     * 
+     *
      * @return array<QrDetailsDTO>
      */
     public function getQrList(): array
@@ -153,8 +142,6 @@ class Monobank
 
     /**
      * Get list of split receivers (sub-merchants).
-     * 
-     * @return array
      */
     public function getSplitReceivers(): array
     {

@@ -12,6 +12,7 @@ A robust, idiomatic Laravel package for integrating with the **Monobank Acquirin
 *   🔒 **Security First**: Automatic verification of Monobank Webhook signatures (ECDSA) using dynamic Public Key caching.
 *   📦 **Strictly Typed**: Uses DTOs and Enums for all requests and responses. No magic arrays.
 *   ⚡ **Laravel Native**: Integration with Laravel's Event system, HTTP Client, and Service Container.
+*   🛡️ **Security Hardened**: User-friendly error messages that don't expose API internals, sanitized logging, input validation.
 
 ## Official Documentation
 
@@ -304,6 +305,32 @@ class HandleMonobankPayment
             // Mark order as paid
         }
     }
+}
+```
+
+## Error Handling
+
+The package provides typed exceptions with user-friendly messages that don't expose sensitive API details:
+
+```php
+use AratKruglik\Monobank\Exceptions\ValidationException;
+use AratKruglik\Monobank\Exceptions\AuthenticationException;
+use AratKruglik\Monobank\Exceptions\RateLimitExceededException;
+use AratKruglik\Monobank\Exceptions\ServerException;
+
+try {
+    $invoice = Monobank::createInvoice($request);
+} catch (ValidationException $e) {
+    // User-friendly message for display
+    $userMessage = $e->getMessage(); // "Payment validation failed..."
+
+    // API details for logging (not exposed to users)
+    Log::error('Monobank error', $e->getApiErrorDetails());
+} catch (RateLimitExceededException $e) {
+    // Retry after the specified time
+    $retryAfter = $e->retryAfter; // seconds
+} catch (AuthenticationException $e) {
+    // Check your API token
 }
 ```
 
