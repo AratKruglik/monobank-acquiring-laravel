@@ -24,8 +24,8 @@ For detailed information about the Monobank Acquiring API, please refer to the o
 
 ## Requirements
 
-*   PHP 8.2+
-*   Laravel 11.0+
+*   PHP 8.3+
+*   Laravel 11.x-13.x
 
 ## Installation
 
