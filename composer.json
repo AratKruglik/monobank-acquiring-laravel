@@ -1,6 +1,6 @@
 {
     "name": "aratkruglik/monobank-laravel",
-    "description": "A comprehensive Monobank API integration for Laravel 11+",
+    "description": "A comprehensive Monobank API integration for Laravel 11, 12, 13",
     "keywords": [
         "laravel",
         "monobank",
@@ -17,11 +17,11 @@
     ],
     "require": {
         "php": "^8.3",
-        "illuminate/support": "^11.0",
-        "illuminate/http": "^11.0"
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "illuminate/http": "^11.0|^12.0|^13.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^9.0",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0"
     },
