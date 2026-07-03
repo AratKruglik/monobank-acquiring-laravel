@@ -131,6 +131,19 @@ Monobank::cancelInvoice(
 );
 ```
 
+You can also remove an unpaid invoice entirely, or finalize a "hold" invoice (capture the previously authorized amount):
+
+```php
+// Remove an invoice
+Monobank::removeInvoice('invoice_id_here');
+
+// Finalize a hold invoice (full capture)
+Monobank::finalizeInvoice('invoice_id_here');
+
+// Finalize a hold invoice (partial capture, e.g., 50.50 UAH)
+Monobank::finalizeInvoice('invoice_id_here', 50.50);
+```
+
 ### 4. Merchant Details
 
 Get information about your merchant account.
@@ -184,6 +197,8 @@ Monobank::resetQrAmount('qr_id_here');
 
 You can manage subscriptions for recurring payments.
 
+> **Note:** `createSubscription`, `getSubscriptionDetails`, and `deleteSubscription` are documented, officially supported Monobank Acquiring API endpoints, confirmed via the official API docs, though not present in the bundled `.claude/skills/monobank-acquiring` reference set.
+
 ### 1. Create Subscription
 
 ```php
@@ -211,6 +226,103 @@ $details = Monobank::getSubscriptionDetails('sub_id_here');
 Monobank::deleteSubscription('sub_id_here');
 ```
 
+## Direct & Token Payments
+
+You can charge a card directly (without redirecting the customer to a Monobank hosted page), process a synchronous payment via card/Apple Pay/Google Pay data, or charge a previously saved wallet card token.
+
+> **⚠️ PCI DSS:** `PaymentDirectRequestDTO` and `SyncPaymentRequestDTO` carry raw cardholder data (PAN, expiry, CVV). Your application must be PCI DSS compliant to collect and transmit this data. Never log these DTOs or their `toArray()` output.
+
+```php
+use AratKruglik\Monobank\DTO\PaymentDirectRequestDTO;
+
+$response = Monobank::paymentDirect(new PaymentDirectRequestDTO(
+    amount: 100.00, // 100.00 UAH
+    cardData: [
+        'pan' => '4242424242424242',
+        'exp' => '1230',
+        'cvv' => '123',
+    ],
+));
+
+// A payment may require 3-D Secure confirmation before it settles.
+if ($response->tdsUrl !== null) {
+    return redirect($response->tdsUrl);
+}
+```
+
+```php
+use AratKruglik\Monobank\DTO\SyncPaymentRequestDTO;
+
+// Exactly one of cardData, applePay, googlePay must be provided.
+$status = Monobank::syncPayment(new SyncPaymentRequestDTO(
+    amount: 50.00,
+    cardData: [
+        'pan' => '4242424242424242',
+        'exp' => '1230',
+        'cvv' => '123',
+    ],
+));
+```
+
+To charge a previously saved wallet card, or manage a customer's saved cards:
+
+```php
+use AratKruglik\Monobank\DTO\WalletPaymentRequestDTO;
+
+$response = Monobank::walletPayment(new WalletPaymentRequestDTO(
+    cardToken: 'card_token_here',
+    amount: 20.00,
+    initiationKind: 'merchant',
+));
+
+// List cards saved for a wallet/customer
+$cards = Monobank::getWalletCards('wallet_id_here');
+
+// Delete a saved card
+Monobank::deleteWalletCard('card_token_here');
+```
+
+## Statement & Reporting
+
+Retrieve a report of transactions for a given time period (unix timestamps).
+
+```php
+$statement = Monobank::getStatement(
+    from: strtotime('-1 day'),
+    to: time()
+);
+
+foreach ($statement as $item) {
+    echo $item->invoiceId . ' - ' . $item->amount;
+}
+```
+
+## Employees
+
+Retrieve the list of employees configured for your merchant account (used for tips distribution).
+
+```php
+$employees = Monobank::getEmployeeList();
+
+foreach ($employees as $employee) {
+    echo $employee->name;
+}
+```
+
+## Fiscal Checks & Receipts
+
+Retrieve fiscal check statuses for an invoice, and download a receipt file.
+
+```php
+$checks = Monobank::getFiscalChecks('invoice_id_here');
+
+foreach ($checks as $check) {
+    echo $check->status . ' - ' . $check->type;
+}
+
+$receiptFile = Monobank::getReceipt('invoice_id_here');
+```
+
 ## Marketplace / Split Payments
 
 You can split a payment between multiple recipients (sub-merchants) by specifying `splitReceiverId` for each item in the cart.
@@ -221,6 +333,10 @@ Retrieve a list of available sub-merchants.
 
 ```php
 $receivers = Monobank::getSplitReceivers();
+
+foreach ($receivers as $receiver) {
+    echo $receiver->code . ' - ' . $receiver->iban;
+}
 ```
 
 ### 2. Create Split Invoice

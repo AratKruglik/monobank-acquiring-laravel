@@ -17,7 +17,11 @@ readonly class InvoiceStatusDTO
         public ?string $modifiedDate = null,
         public ?string $reference = null,
         public ?string $errorCode = null,
-        public ?string $errorText = null
+        public ?string $errorText = null,
+        public ?array $paymentInfo = null,
+        public array $cancelList = [],
+        public ?array $tipsInfo = null,
+        public ?array $walletData = null
     ) {}
 
     public static function fromArray(array $data): self
@@ -32,7 +36,11 @@ readonly class InvoiceStatusDTO
             modifiedDate: $data['modifiedDate'] ?? null,
             reference: $data['reference'] ?? null,
             errorCode: $data['errCode'] ?? null,
-            errorText: $data['errText'] ?? null
+            errorText: $data['errText'] ?? null,
+            paymentInfo: $data['paymentInfo'] ?? null,
+            cancelList: $data['cancelList'] ?? [],
+            tipsInfo: $data['tipsInfo'] ?? null,
+            walletData: $data['walletData'] ?? null
         );
     }
 }

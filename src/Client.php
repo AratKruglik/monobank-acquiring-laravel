@@ -28,15 +28,23 @@ class Client implements ClientInterface
         return $this->request('get', $uri, $query);
     }
 
-    public function post(string $uri, array $data = []): Response
+    public function post(string $uri, #[\SensitiveParameter] array $data = []): Response
     {
         return $this->request('post', $uri, $data);
     }
 
-    protected function request(string $method, string $uri, array $data = []): Response
+    public function delete(string $uri, #[\SensitiveParameter] array $query = []): Response
+    {
+        return $this->request('delete', $uri, $query);
+    }
+
+    protected function request(string $method, string $uri, #[\SensitiveParameter] array $data = []): Response
     {
         try {
-            $response = $this->makeRequest()->$method($uri, $data);
+            $pending = $this->makeRequest();
+            $response = $method === 'delete'
+                ? $pending->withQueryParameters($data)->delete($uri)
+                : $pending->$method($uri, $data);
         } catch (LaravelConnectionException $e) {
             throw new ConnectionException($e->getMessage(), $e->getCode(), $e);
         }
