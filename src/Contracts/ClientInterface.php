@@ -14,5 +14,10 @@ interface ClientInterface
     /**
      * Make a POST request to the Monobank API.
      */
-    public function post(string $uri, array $data = []): Response;
+    public function post(string $uri, #[\SensitiveParameter] array $data = []): Response;
+
+    /**
+     * Make a DELETE request to the Monobank API.
+     */
+    public function delete(string $uri, #[\SensitiveParameter] array $query = []): Response;
 }
