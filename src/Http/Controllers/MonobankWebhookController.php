@@ -29,22 +29,34 @@ class MonobankWebhookController extends Controller
             return $this->unauthorizedResponse($request, 'invalid_base64');
         }
 
-        try {
-            $pubKey = $this->pubKeyProvider->getKey();
-        } catch (ConnectionException $e) {
-            Log::error('Monobank Webhook: Connection error fetching public key');
-            return response()->json(['error' => 'Service temporarily unavailable'], 503);
-        } catch (\Exception $e) {
-            Log::critical('Monobank Webhook: Unexpected error fetching public key', [
-                'exception' => $e::class,
-            ]);
-            return response()->json(['error' => 'Internal server error'], 500);
+        $data = $request->getContent();
+        $isValid = false;
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            if ($attempt > 0) {
+                $this->pubKeyProvider->flush();
+            }
+
+            try {
+                $pubKey = $this->pubKeyProvider->getKey();
+            } catch (ConnectionException $e) {
+                Log::error('Monobank Webhook: Connection error fetching public key');
+                return response()->json(['error' => 'Service temporarily unavailable'], 503);
+            } catch (\Exception $e) {
+                Log::critical('Monobank Webhook: Unexpected error fetching public key', [
+                    'exception' => $e::class,
+                ]);
+                return response()->json(['error' => 'Internal server error'], 500);
+            }
+
+            $isValid = openssl_verify($data, $signature, $pubKey, OPENSSL_ALGO_SHA256) === 1;
+
+            if ($isValid) {
+                break;
+            }
         }
 
-        $data = $request->getContent();
-        $isValid = openssl_verify($data, $signature, $pubKey, OPENSSL_ALGO_SHA256);
-
-        if ($isValid !== 1) {
+        if (! $isValid) {
             return $this->unauthorizedResponse($request, 'invalid_signature');
         }
 
@@ -53,7 +65,7 @@ class MonobankWebhookController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        WebhookReceived::dispatch($request->all());
+        WebhookReceived::dispatch(json_decode($data, true) ?? []);
 
         return response()->json(['status' => 'ok']);
     }

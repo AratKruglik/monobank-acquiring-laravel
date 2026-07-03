@@ -205,7 +205,7 @@ class Monobank
      */
     public function getQrDetails(string $qrId): QrDetailsDTO
     {
-        $response = $this->client->get("qr/details/{$qrId}");
+        $response = $this->client->get('qr/details/'.rawurlencode($qrId));
 
         return QrDetailsDTO::fromArray($response->json());
     }

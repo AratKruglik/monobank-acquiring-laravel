@@ -22,7 +22,11 @@ class MonobankServiceProvider extends ServiceProvider
         }
 
         Route::macro('monobankWebhook', function (string $url) {
-            return Route::post($url, MonobankWebhookController::class)->name('monobank.webhook');
+            $middleware = config('monobank.webhook.middleware') ?? [];
+
+            return Route::post($url, MonobankWebhookController::class)
+                ->middleware($middleware)
+                ->name('monobank.webhook');
         });
     }
 

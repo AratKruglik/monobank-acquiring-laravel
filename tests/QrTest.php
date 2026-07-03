@@ -53,6 +53,25 @@ it('can get qr details', function () {
         ->and($details->amount)->toBe('1000');
 });
 
+it('rawurlencodes the qrId when getting qr details', function () {
+    Http::fake([
+        'api.monobank.ua/api/merchant/qr/details/*' => Http::response([
+            'qrId' => 'a/b c',
+            'shortQrId' => 'short1',
+            'paymentType' => 'debit',
+            'pageUrl' => 'https://pay.mb.ua/qr1',
+            'amount' => '1000',
+            'ccy' => 980,
+        ], 200),
+    ]);
+
+    Monobank::getQrDetails('a/b c');
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'qr/details/a%2Fb%20c');
+    });
+});
+
 it('can reset qr amount', function () {
     Http::fake([
         'api.monobank.ua/api/merchant/qr/reset-amount' => Http::response([], 200),

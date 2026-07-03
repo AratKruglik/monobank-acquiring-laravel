@@ -24,13 +24,19 @@ class PubKeyProvider
     {
         return Cache::remember(self::CACHE_KEY, self::TTL, function () {
             $response = $this->client->get('pubkey');
-            $key = $response->json('key');
+            $encodedKey = $response->json('key');
 
-            if (empty($key)) {
+            if (empty($encodedKey)) {
                 throw new ValidationException('Failed to retrieve public key from Monobank API');
             }
 
-            return $key;
+            $pem = base64_decode($encodedKey, true);
+
+            if ($pem === false || openssl_pkey_get_public($pem) === false) {
+                throw new ValidationException('Monobank API returned an invalid public key');
+            }
+
+            return $pem;
         });
     }
 
